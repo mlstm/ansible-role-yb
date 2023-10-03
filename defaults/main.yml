@@ -11,12 +11,20 @@ yb_datadir: /opt/yugabyte_data
 yb_logdir: /var/log/yugabyte
 yb_hba: "host all all all md5"
 
+ysql_default: yugabyte
+ycql_default: cassandra
+
+ysql:
+  user: testuser
+  pass: testpass
+ycql:
+  user: testuser
+  pass: testpass
+
 grub_path: "/etc/default/grub"
 
 setup_packages:
   - curl
-  - python-is-python3
-  - python3-pip
   - wget
 
 ulimits:

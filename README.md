@@ -44,9 +44,10 @@ yb_tserver:
   become: true
   gather_facts: true
   hosts: yb_nodes
+  order: sorted
 
   roles:
-    - role: "ansible-role-yb"
+    - role: "mlstm.yb"  # Not available yet
 ```
 
 **Run playbook:**<br />

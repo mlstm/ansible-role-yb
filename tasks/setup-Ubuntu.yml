@@ -35,11 +35,9 @@
     line: '\1transparent_hugepage=always"'
   when: grub_cmdline_check.found == 0
   register: modify_grub
-
-- name: Update GRUB
-  ansible.builtin.command: update-grub
-  when: modify_grub is changed
-  register: grub_update
+  notify:
+    - Update GRUB
+    - Reboot node
 
 - name: Check ulimits
   ansible.builtin.lineinfile:
@@ -58,10 +56,9 @@
     limit_item: "{{ item.limit_item }}"
     value: "{{ item.value }}"
   loop: "{{ ulimits }}"
+  notify: Reboot node
   register: ulimit
   when: ulimit_check.found == 0
 
-- name: Reboot node
-  ansible.builtin.reboot:
-    msg: "Reboot requested by Ansible"
-  when: (ulimit is changed) or (grub_update is changed)
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers

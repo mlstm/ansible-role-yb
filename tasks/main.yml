@@ -7,3 +7,6 @@
 
 - name: Invoke Yugabyte run
   ansible.builtin.include_tasks: run.yml
+
+- name: Invoke Yugabyte users configuration
+  ansible.builtin.include_tasks: users.yml
