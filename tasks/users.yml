@@ -1,0 +1,54 @@
+---
+# https://docs.yugabyte.com/preview/secure/enable-authentication/ysql/
+- name: Create PG administrative user
+  ansible.builtin.shell:
+    cmd: |
+      set -eu pipefail
+      {{ yb_workingdir }}/bin/ysqlsh -h {{ ansible_fqdn }} -p 5433 -U {{ ysql_default }} -c \
+        "CREATE ROLE {{ ysql.user }} WITH LOGIN SUPERUSER PASSWORD '{{ ysql.pass }}';"
+  environment:
+    PGPASSWORD: "{{ ysql_default }}"
+  register: ysql_create_user
+  changed_when: ysql_create_user.rc == 0
+  failed_when: ysql_create_user.rc != 0
+  ignore_errors: true
+  run_once: true
+
+- name: Destroy PG default user
+  ansible.builtin.shell:
+    cmd: |
+      set -eu pipefail
+      {{ yb_workingdir }}/bin/ysqlsh -h {{ ansible_fqdn }} -p 5433 -U {{ ysql.user }} -c \
+        "DROP ROLE {{ ysql_default }};"
+  environment:
+    PGPASSWORD: "{{ ysql.pass }}"
+  register: ysql_destroy_user
+  changed_when: ysql_destroy_user.rc == 0
+  failed_when: ysql_destroy_user.rc != 0
+  ignore_errors: true
+  run_once: true
+
+# https://docs.yugabyte.com/preview/secure/enable-authentication/ycql/
+- name: Create Cassandra administrative user
+  ansible.builtin.shell:
+    cmd: |
+      set -eu pipefail
+      {{ yb_workingdir }}/bin/ycqlsh {{ ansible_fqdn }} -u {{ ycql_default }} -p {{ ycql_default }} -e \
+        "CREATE ROLE {{ ycql.user }} WITH PASSWORD = '{{ ycql.pass }}' AND LOGIN = true AND SUPERUSER = true;"
+  register: ycql_create_user
+  changed_when: ycql_create_user.rc == 0
+  failed_when: ycql_create_user.rc != 0
+  ignore_errors: true
+  run_once: true
+
+- name: Destroy Cassandra default user
+  ansible.builtin.shell:
+    cmd: |
+      set -eu pipefail
+      {{ yb_workingdir }}/bin/ycqlsh {{ ansible_fqdn }} -u {{ ycql.user }} -p {{ ycql.pass }} -e \
+        "DROP ROLE IF EXISTS {{ ycql_default }};"
+  register: ycql_destroy_user
+  changed_when: ycql_destroy_user.rc == 0
+  failed_when: ycql_destroy_user.rc != 0
+  ignore_errors: true
+  run_once: true

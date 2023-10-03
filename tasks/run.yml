@@ -32,7 +32,7 @@
     name: yb-master
     enabled: true
     state: started
-  delay: 60
+  throttle: 1
   when: inventory_hostname in groups['yb_master']
 
 - name: Start tserver services
@@ -40,7 +40,7 @@
     name: yb-tserver
     enabled: true
     state: started
-  delay: 60
+  throttle: 1
   when: inventory_hostname in groups['yb_tserver']
 
 - name: Validate Yugabyte services

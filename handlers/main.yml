@@ -1,0 +1,7 @@
+---
+- name: Update GRUB
+  ansible.builtin.command: update-grub
+
+- name: Reboot node
+  ansible.builtin.reboot:
+    msg: "Reboot requested by Ansible"
