@@ -1,0 +1,67 @@
+---
+# https://docs.yugabyte.com/preview/deploy/manual-deployment/system-config/
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  changed_when: false
+
+- name: Update OS packages
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ setup_packages }}"
+
+- name: Check transparent_hugepage capabilities
+  ansible.builtin.lineinfile:
+    backup: true
+    path: "{{ grub_path }}"
+    regexp: '^GRUB_CMDLINE_LINUX=".*transparent_hugepage=always'
+    state: absent
+  check_mode: true
+  register: grub_cmdline_check
+  changed_when: false
+
+- name: Add transparent_hugepage capabilities if missing
+  ansible.builtin.lineinfile:
+    backrefs: true
+    path: "{{ grub_path }}"
+    regexp: "^(GRUB_CMDLINE_LINUX=\".*)\"$"
+    line: '\1transparent_hugepage=always"'
+  when: grub_cmdline_check.found == 0
+  register: modify_grub
+
+- name: Update GRUB
+  ansible.builtin.command: update-grub
+  when: modify_grub is changed
+  register: grub_update
+
+- name: Check ulimits
+  ansible.builtin.lineinfile:
+    backup: true
+    path: "/etc/security/limits.conf"
+    regexp: '^(\*)(.*)(nofile)(.*)(1048576)$'
+    state: absent
+  check_mode: true
+  register: ulimit_check
+  changed_when: false
+
+- name: Add ulimits
+  community.general.pam_limits:
+    domain: "*"
+    limit_type: "{{ item.limit_type | default('-') }}"
+    limit_item: "{{ item.limit_item }}"
+    value: "{{ item.value }}"
+  loop: "{{ ulimits }}"
+  register: ulimit
+  when: ulimit_check.found == 0
+
+- name: Reboot node
+  ansible.builtin.reboot:
+    msg: "Reboot requested by Ansible"
+  when: (ulimit is changed) or (grub_update is changed)

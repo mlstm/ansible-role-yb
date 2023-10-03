@@ -1,0 +1,55 @@
+---
+# https://docs.yugabyte.com/preview/deploy/manual-deployment/install-software/
+
+- name: Yugabyte group state
+  ansible.builtin.group:
+    name: "{{ yb_group }}"
+    state: present
+
+- name: Yugabyte user state
+  ansible.builtin.user:
+    comment: Yugabyte
+    name: "{{ yb_user }}"
+    group: "{{ yb_group }}"
+    shell: /bin/bash
+
+- name: Add Yugabyte user to sudoers
+  ansible.builtin.template:
+    src: yugabyte.sudo.j2
+    dest: "/etc/sudoers.d/{{ yb_user }}"
+    owner: root
+    group: root
+    mode: 0440
+
+- name: Yugabyte folder state
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ yb_user }}"
+    group: "{{ yb_group }}"
+    mode: 0774
+  loop:
+    - "{{ yb_workingdir }}"
+    - "{{ yb_datadir }}"
+    - "{{ yb_logdir }}"
+
+- name: Download and unarchive Yugabyte package
+  ansible.builtin.unarchive:
+    src: "{{ yb_package }}"
+    dest: "{{ yb_workingdir }}"
+    remote_src: yes
+    extra_opts:
+      - --strip-components
+      - 1
+    owner: "{{ yb_user }}"
+    group: "{{ yb_group }}"
+  register: download
+
+- name: Run post-installation script
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      "{{ yb_workingdir }}"/bin/post_install.sh
+  args:
+    executable: /bin/bash
+  when: download is successful

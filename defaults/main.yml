@@ -1,0 +1,38 @@
+---
+address_type: hostname  # ip|hostname
+
+# https://docs.yugabyte.com/preview/releases/
+yb_package: https://downloads.yugabyte.com/releases/2.18.3.0/yugabyte-2.18.3.0-b75-linux-x86_64.tar.gz
+yb_replication: 3
+yb_user: yugabyte
+yb_group: yugabyte
+yb_workingdir: /opt/yugabyte
+yb_datadir: /opt/yugabyte_data
+yb_logdir: /var/log/yugabyte
+yb_hba: "host all all all md5"
+
+grub_path: "/etc/default/grub"
+
+setup_packages:
+  - curl
+  - python-is-python3
+  - python3-pip
+  - wget
+
+ulimits:
+  - { limit_type: '-', limit_item: 'core', value: unlimited }
+  - { limit_type: '-', limit_item: 'data', value: unlimited }
+  - { limit_type: '-', limit_item: 'fsize', value: unlimited }
+  - { limit_type: '-', limit_item: 'sigpending', value: 119934 }
+  - { limit_type: '-', limit_item: 'memlock', value: 64 }
+  - { limit_type: '-', limit_item: 'rss', value: unlimited }
+  - { limit_type: '-', limit_item: 'nofile', value: 1048576 }
+  - { limit_type: '-', limit_item: 'msgqueue', value: 819200 }
+  - { limit_type: '-', limit_item: 'stack', value: 8192 }
+  - { limit_type: '-', limit_item: 'cpu', value: unlimited }
+  - { limit_type: '-', limit_item: 'nproc', value: 12000 }
+  - { limit_type: '-', limit_item: 'locks', value: unlimited }
+
+systemd_services:
+  - { src: 'yb-master.service.j2', dest: '/etc/systemd/system/yb-master.service' }
+  - { src: 'yb-tserver.service.j2', dest: '/etc/systemd/system/yb-tserver.service' }

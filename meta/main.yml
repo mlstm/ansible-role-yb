@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Timothy Miles
+  role_name: yb
+  description: Yugabyte Ansible Role
+  license: MIT
+  min_ansible_version: 2.14.7
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+  galaxy_tags:
+    - yugabyte
+    - installer
+
+dependencies: []

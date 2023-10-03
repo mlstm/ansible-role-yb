@@ -1,0 +1,54 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=Yugabyte tserver service
+Requires=network-online.target
+After=network.target network-online.target multi-user.target
+StartLimitInterval=100
+StartLimitBurst=10
+
+[Service]
+User={{ yb_user }}
+Group={{ yb_group }}
+# Start
+ExecStart=/bin/bash -c '{{ yb_workingdir }}/bin/yb-tserver \
+--tserver_master_addrs={{ master_addresses }} \
+--fs_data_dirs="{{ yb_datadir }}" \
+--webserver_port=9000 \
+--enable_ysql=true \
+--ysql_enable_auth=true \
+--ysql_hba_conf_csv="{{ yb_hba }}" \
+--use_cassandra_authentication=true \
+{% if address_type == "ip" %}
+--rpc_bind_addresses={{ host_ip }}:9100 \
+--server_broadcast_addresses={{ host_ip }}:9100 \
+--pgsql_proxy_bind_address={{ host_ip }}:5433 \
+--cql_proxy_bind_address={{ host_ip }}:9042 \
+--redis_proxy_bind_address={{ host_ip }}:6379 \
+{% else %}
+--rpc_bind_addresses={{ ansible_fqdn }}:9100 \
+--server_broadcast_addresses={{ ansible_fqdn }}:9100 \
+--pgsql_proxy_bind_address={{ ansible_fqdn }}:5433 \
+--cql_proxy_bind_address={{ ansible_fqdn }}:9042 \
+--redis_proxy_bind_address={{ ansible_fqdn }}:6379 \
+{% endif %}
+--use_private_ip=never \
+--log_dir={{ yb_logdir }}'
+Restart=on-failure
+RestartSec=5
+WorkingDirectory={{ yb_datadir }}
+# Stop -> SIGTERM - 10s - SIGKILL (if not stopped) [matches existing cron behavior]
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=10
+FinalKillSignal=SIGKILL
+# Logs
+StandardOutput=syslog
+StandardError=syslog
+# ulimit
+LimitCORE=infinity
+LimitNOFILE=1048576
+LimitNPROC=12000
+
+[Install]
+WantedBy=multi-user.target

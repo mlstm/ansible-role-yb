@@ -1,0 +1,48 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=Yugabyte master service
+Requires=network-online.target
+After=network.target network-online.target multi-user.target
+StartLimitInterval=100
+StartLimitBurst=10
+
+[Service]
+User={{ yb_user }}
+Group={{ yb_group }}
+# Start
+ExecStart=/bin/bash -c '{{ yb_workingdir }}/bin/yb-master \
+--master_addresses={{ master_addresses }} \
+--replication_factor={{ yb_replication }} \
+--fs_data_dirs={{ yb_datadir }} \
+{% if address_type == "ip" %}
+--rpc_bind_addresses={{ host_ip }}:7100 \
+--server_broadcast_addresses={{ host_ip }}:7100 \
+--webserver_interface={{ host_ip }} \
+{% else %}
+--rpc_bind_addresses={{ ansible_fqdn }}:7100 \
+--server_broadcast_addresses={{ ansible_fqdn }}:7100 \
+--webserver_interface={{ ansible_fqdn }} \
+{% endif %}
+--webserver_port=7000 \
+--use_private_ip=never \
+--log_dir={{ yb_logdir }} \
+--callhome_collection_level=low'
+Restart=on-failure
+RestartSec=5
+WorkingDirectory={{ yb_datadir }}
+# Stop -> SIGTERM - 10s - SIGKILL (if not stopped) [matches existing cron behavior]
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=10
+FinalKillSignal=SIGKILL
+# Logs
+StandardOutput=syslog
+StandardError=syslog
+# ulimit
+LimitCORE=infinity
+LimitNOFILE=1048576
+LimitNPROC=12000
+
+[Install]
+WantedBy=multi-user.target

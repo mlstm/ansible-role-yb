@@ -1,0 +1,7 @@
+---
+exclude_paths:
+  - .venv*/
+
+skip_list:
+  - '106'
+  - '208'

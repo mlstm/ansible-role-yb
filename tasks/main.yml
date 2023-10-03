@@ -1,0 +1,9 @@
+---
+- name: Invoke distro setup
+  ansible.builtin.include_tasks: "setup-{{ ansible_distribution }}.yml"
+
+- name: Invoke Yugabyte installation
+  ansible.builtin.include_tasks: install.yml
+
+- name: Invoke Yugabyte run
+  ansible.builtin.include_tasks: run.yml

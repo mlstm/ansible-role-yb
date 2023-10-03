@@ -1,0 +1,57 @@
+---
+# https://docs.yugabyte.com/preview/deploy/manual-deployment/start-masters/
+# https://docs.yugabyte.com/preview/deploy/manual-deployment/start-tservers/
+
+- name: Define host IPs
+  ansible.builtin.set_fact:
+    host_ip: "{{ ansible_default_ipv4.address }}"
+    master_addresses: "{{ groups['yb_master'] | map('extract', hostvars, ['ansible_host'] | default('')) | reject('match', '^$') | map('regex_replace', '(.+)', '\\1:7100') | join(',') }}"
+  when: address_type == "ip"
+
+- name: Define hostnames
+  ansible.builtin.set_fact:
+    host_ip: "{{ ansible_default_ipv4.address }}"
+    master_addresses: "{{ groups['yb_master'] | map('extract', hostvars, ['inventory_hostname']) | map('regex_replace', '(.+)', '\\1:7100') | join(',') }}"
+  when: address_type == "hostname"
+
+- name: Add systemd services
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ yb_user }}"
+    group: "{{ yb_group }}"
+    mode: 0775
+  loop: "{{ systemd_services }}"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start master services
+  ansible.builtin.systemd:
+    name: yb-master
+    enabled: true
+    state: started
+  delay: 60
+  when: inventory_hostname in groups['yb_master']
+
+- name: Start tserver services
+  ansible.builtin.systemd:
+    name: yb-tserver
+    enabled: true
+    state: started
+  delay: 60
+  when: inventory_hostname in groups['yb_tserver']
+
+- name: Validate Yugabyte services
+  ansible.builtin.uri:
+    url: "http://{{ host_ip }}:{{ item }}"
+    follow_redirects: none
+    method: GET
+  register: _result
+  until: _result.status == 200
+  retries: 36
+  delay: 5
+  loop:
+    - 7000
+    - 9000
